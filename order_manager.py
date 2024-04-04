@@ -1,4 +1,3 @@
-import http
 import json
 import time
 from datetime import datetime, timedelta
@@ -60,7 +59,7 @@ class NaverOrderManager:
             day_from = start_date + timedelta(days=day)
             orders = self.get_new_orders(day_from)
             orders_by_date[day_from.strftime('%Y-%m-%d')] = orders
-            time.sleep(0.3)
+            time.sleep(0.5)
 
         return orders_by_date
 

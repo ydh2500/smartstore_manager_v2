@@ -1,0 +1,1 @@
+# smartstore_manager_v2

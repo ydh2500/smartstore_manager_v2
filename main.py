@@ -21,7 +21,7 @@ if __name__ == '__main__':
     since_from_datetime = datetime.now() - timedelta(days=30)
 
     try:
-        new_orders = order_manager.get_new_orders(since_from_datetime)
+        new_orders = order_manager.get_changed_orders(since_from_datetime)
         print('New Orders:', new_orders)
 
         new_orders = order_manager.get_weekly_orders()

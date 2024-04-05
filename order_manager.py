@@ -53,8 +53,6 @@ class NaverOrderManager:
         confirm_orders: 주문 확인 처리
     """
 
-    BASE_URL = 'https://api.commerce.naver.com/external/v1'
-
     def __init__(self, conn: HTTPSConnection, headers: dict):
         '''
         네이버 쇼핑 주문 관리 클래스
@@ -63,7 +61,7 @@ class NaverOrderManager:
         self.conn = conn
         self.headers = headers
 
-    def get_new_orders(self, last_changed_from):
+    def get_changed_orders(self, last_changed_from, last_changed_type=None):
         """
         example code:
             import http.client
@@ -89,9 +87,12 @@ class NaverOrderManager:
         encoded_last_changed_from = quote_plus(last_changed_from) # 최대 24시간 이전의 주문 조회
         encoded_last_changed_to = quote_plus(last_changed_to)
 
-        self.conn.request("GET",
-                          f"{order_url}?lastChangedFrom={encoded_last_changed_from}&lastChangedTo={encoded_last_changed_to}&lastChangedType=PAY_WAITING",
-                          headers=self.headers)
+        query = f"lastChangedFrom={encoded_last_changed_from}&lastChangedTo={encoded_last_changed_to}"
+        if last_changed_type:
+            query += f"&lastChangedType={last_changed_type}"
+
+        self.conn.request("GET", f"{order_url}?{query}", headers=self.headers)
+
         response = self.conn.getresponse()
         if response.status != 200:
             raise Exception(f'Order Error: {response.status}, {response.read()}')
@@ -112,32 +113,8 @@ class NaverOrderManager:
 
         for day in range(days+1):
             day_from = start_date + timedelta(days=day)
-            print(day_from.strftime('%Y-%m-%d'))
-            orders = self.get_new_orders(day_from)
+            orders = self.get_changed_orders(last_changed_from=day_from, last_changed_type=LastChangeType.PAYED)
             orders_by_date[day_from.strftime('%Y-%m-%d')] = orders
             time.sleep(0.5)
 
         return orders_by_date
-
-        # return [status.get('productOrderId') for status in data.get('lastChangeStatuses', [])]
-
-        # if response.status_code != 200:
-        #     raise Exception(f'Order Error: {response.status_code}, {response.text}')
-        #
-        # data = response.json().get('data', {})
-        # return [status.get('productOrderId') for status in data.get('lastChangeStatuses', [])]
-
-    # def confirm_orders(self, product_order_ids):
-    #     confirm_url = f'{self.BASE_URL}/pay-order/seller/product-orders/confirm'
-    #     max_count = 30
-    #
-    #     for i in range(0, len(product_order_ids), max_count):
-    #         current_ids = product_order_ids[i:i + max_count]
-    #         payload = {"productOrderIds": current_ids}
-    #
-    #         response = requests.post(confirm_url, json=payload, headers=self.headers)
-    #
-    #         if response.status_code != 200:
-    #             raise Exception(f'Confirm Error: {response.status_code}, {response.text}')
-    #
-    #         print(f'Confirmation Data for IDs {i} to {i + max_count - 1} :', response.json())

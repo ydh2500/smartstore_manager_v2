@@ -4,6 +4,28 @@ from datetime import datetime, timedelta
 from http.client import HTTPSConnection
 from urllib.parse import quote_plus
 
+from pydantic import ValidationError
+
+from domain.order.order_schema import LastChangeStatuses
+
+
+# class LastChangeStatuses:
+#     """
+#     [{'orderId': '2024033016972311', 'productOrderId': '2024033063694171', 'productOrderStatus': 'PURCHASE_DECIDED', 'paymentDate': '2024-03-30T15:54:58.0+09:00', 'lastChangedDate': '2024-04-03T21:19:30.0+09:00', 'lastChangedType': 'PURCHASE_DECIDED', 'receiverAddressChanged': True}]
+#     """
+#     def __init__(self, data):
+#         if type(data) is not dict:
+#             data = json.loads(data)
+#         self.orderId = data.get('orderId')
+#         self.productOrderId = data.get('productOrderId')
+#         self.productOrderStatus = data.get('productOrderStatus')
+#         self.paymentDate = data.get('paymentDate')
+#         self.lastChangedDate = data.get('lastChangedDate')
+#         self.lastChangedType = data.get('lastChangedType')
+#         self.receiverAddressChanged = data.get('receiverAddressChanged')
+#
+#     def __str__(self):
+#         return f"orderId: {self.orderId}, productOrderId: {self.productOrderId}, productOrderStatus: {self.productOrderStatus}, paymentDate: {self.paymentDate}, lastChangedDate: {self.lastChangedDate}, lastChangedType: {self.lastChangedType}, receiverAddressChanged: {self.receiverAddressChanged} "
 
 class LastChangeType:
     """
@@ -103,7 +125,19 @@ class NaverOrderManager:
         if json_data.get('data') is None:
             return []
 
-        return [status.get('productOrderId') for status in json_data.get('data').get('lastChangeStatuses', [])]
+        last_change_statuses = []
+        # for status in json_data.get('data')['lastChangeStatuses']:
+        #     print(status)
+        #     last_change_statuses.append(LastChangeStatuses(**status))
+        # JSON 데이터에서 lastChangeStatuses 리스트를 LastChangeStatuses 인스턴스로 변환
+        try:
+            last_change_statuses = [LastChangeStatuses(**status) for status in
+                                    json_data.get('data')['lastChangeStatuses']]
+        except ValidationError as e:
+            print(e.json())
+
+        return last_change_statuses
+        # return [status.get('productOrderId') for status in json_data.get('data').get('lastChangeStatuses', [])]
 
     def get_weekly_orders(self):
         days = 2
@@ -113,7 +147,7 @@ class NaverOrderManager:
 
         for day in range(days+1):
             day_from = start_date + timedelta(days=day)
-            orders = self.get_changed_orders(last_changed_from=day_from, last_changed_type=LastChangeType.PAYED)
+            orders = self.get_changed_orders(last_changed_from=day_from, last_changed_type=LastChangeType.PURCHASE_DECIDED)
             orders_by_date[day_from.strftime('%Y-%m-%d')] = orders
             time.sleep(0.5)
 

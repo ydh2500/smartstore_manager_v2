@@ -2,20 +2,38 @@ import traceback
 from datetime import datetime, timedelta
 import http.client
 from auth.token_manager import get_token
-from order_manager import NaverOrderManager
+from domain.order.order_manager import NaverOrderManager
+
+from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+origins = [
+    "http://127.0.0.1:5173",  # Svelte
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# app.include_router(question_router.router)
+# app.include_router(answer_router.router)
+# app.include_router(user_router.router)
+# app.mount("/assets", StaticFiles(directory="frontend/dist/assets"))
+
+@app.get("/")
+def index():
+    return "Hello, World!"
 
 if __name__ == '__main__':
-    CLIENT_ID = '6e8QDBd5Oi2CAE0WiijrXM'
-    CLIENT_SECRET = '$2a$04$XRkBhFNBXdNClAqPoDs.Iu'
-    TOKEN_TYPE = 'SELF'
-    ACCOUNT_ID = 'jinji-market'
-
     access_token = get_token()
-
     conn = http.client.HTTPSConnection("api.commerce.naver.com")
     headers = {'Authorization': f'Bearer {access_token}'}
-
-#    token_manager = TokenManager(CLIENT_ID, CLIENT_SECRET, TOKEN_TYPE, ACCOUNT_ID)
 
     order_manager = NaverOrderManager(conn, headers)
     since_from_datetime = datetime.now() - timedelta(days=30)

@@ -6,61 +6,7 @@ from urllib.parse import quote_plus
 
 from pydantic import ValidationError
 
-from domain.order.order_schema import LastChangeStatuses
-
-
-# class LastChangeStatuses:
-#     """
-#     [{'orderId': '2024033016972311', 'productOrderId': '2024033063694171', 'productOrderStatus': 'PURCHASE_DECIDED', 'paymentDate': '2024-03-30T15:54:58.0+09:00', 'lastChangedDate': '2024-04-03T21:19:30.0+09:00', 'lastChangedType': 'PURCHASE_DECIDED', 'receiverAddressChanged': True}]
-#     """
-#     def __init__(self, data):
-#         if type(data) is not dict:
-#             data = json.loads(data)
-#         self.orderId = data.get('orderId')
-#         self.productOrderId = data.get('productOrderId')
-#         self.productOrderStatus = data.get('productOrderStatus')
-#         self.paymentDate = data.get('paymentDate')
-#         self.lastChangedDate = data.get('lastChangedDate')
-#         self.lastChangedType = data.get('lastChangedType')
-#         self.receiverAddressChanged = data.get('receiverAddressChanged')
-#
-#     def __str__(self):
-#         return f"orderId: {self.orderId}, productOrderId: {self.productOrderId}, productOrderStatus: {self.productOrderStatus}, paymentDate: {self.paymentDate}, lastChangedDate: {self.lastChangedDate}, lastChangedType: {self.lastChangedType}, receiverAddressChanged: {self.receiverAddressChanged} "
-
-class LastChangeType:
-    """
-    string (lastChangedType.pay-order-seller)
-    최종 변경 구분. 250바이트 내외
-
-    PAY_WAITING	결제 대기
-    PAYED	결제 완료
-    EXCHANGE_OPTION	옵션 변경
-    DELIVERY_ADDRESS_CHANGED	배송지 변경
-    GIFT_RECEIVED	선물 수락
-    CLAIM_REJECTED	클레임 철회
-    DISPATCHED	발송 처리
-    CLAIM_REQUESTED	클레임 요청
-    COLLECT_DONE	수거 완료
-    CLAIM_HOLDBACK_RELEASED	클레임 보류 해제
-    CLAIM_COMPLETED	클레임 완료
-    PURCHASE_DECIDED	구매 확정
-    HOPE_DELIVERY_INFO_CHANGED	배송 희망일 변경
-    CLAIM_REDELIVERING	교환 재배송처리
-    """
-    PAY_WAITING = 'PAY_WAITING'
-    PAYED = 'PAYED'
-    EXCHANGE_OPTION = 'EXCHANGE_OPTION'
-    DELIVERY_ADDRESS_CHANGED = 'DELIVERY_ADDRESS_CHANGED'
-    GIFT_RECEIVED = 'GIFT_RECEIVED'
-    CLAIM_REJECTED = 'CLAIM_REJECTED'
-    DISPATCHED = 'DISPATCHED'
-    CLAIM_REQUESTED = 'CLAIM_REQUESTED'
-    COLLECT_DONE = 'COLLECT_DONE'
-    CLAIM_HOLDBACK_RELEASED = 'CLAIM_HOLDBACK_RELEASED'
-    CLAIM_COMPLETED = 'CLAIM_COMPLETED'
-    PURCHASE_DECIDED = 'PURCHASE_DECIDED'
-    HOPE_DELIVERY_INFO_CHANGED = 'HOPE_DELIVERY_INFO_CHANGED'
-    CLAIM_REDELIVERING = 'CLAIM_REDELIVERING'
+from domain.order.order_schema import LastChangeStatus
 
 
 class NaverOrderManager:
@@ -83,7 +29,7 @@ class NaverOrderManager:
         self.conn = conn
         self.headers = headers
 
-    def get_changed_orders(self, last_changed_from, last_changed_type=None):
+    def get_changed_orders(self, last_changed_from: datetime, last_changed_type: str = None):
         """
         example code:
             import http.client
@@ -95,7 +41,7 @@ class NaverOrderManager:
             print(data.decode("utf-8"))
         """
         order_url = f'/external/v1/pay-order/seller/product-orders/last-changed-statuses'
-
+        last_changed_from = last_changed_from.replace(hour=0, minute=0, second=0, microsecond=0)
         last_changed_to = last_changed_from + timedelta(days=1)
         #만일 last_changed_to가 현재 시간보다 미래라면 현재 시간의 1분 전으로 변경
         if last_changed_to > datetime.now():
@@ -126,29 +72,24 @@ class NaverOrderManager:
             return []
 
         last_change_statuses = []
-        # for status in json_data.get('data')['lastChangeStatuses']:
-        #     print(status)
-        #     last_change_statuses.append(LastChangeStatuses(**status))
-        # JSON 데이터에서 lastChangeStatuses 리스트를 LastChangeStatuses 인스턴스로 변환
+
         try:
-            last_change_statuses = [LastChangeStatuses(**status) for status in
+            last_change_statuses = [LastChangeStatus(**status) for status in
                                     json_data.get('data')['lastChangeStatuses']]
         except ValidationError as e:
             print(e.json())
 
         return last_change_statuses
-        # return [status.get('productOrderId') for status in json_data.get('data').get('lastChangeStatuses', [])]
 
-    def get_weekly_orders(self):
-        days = 2
+    def get_orders_for_days(self, days, last_changed_type: str):
         orders_by_date = {}
         # 오늘 00시 00분 00초부터 days일 전까지의 주문 조회
         start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days)
 
         for day in range(days+1):
             day_from = start_date + timedelta(days=day)
-            orders = self.get_changed_orders(last_changed_from=day_from, last_changed_type=LastChangeType.PURCHASE_DECIDED)
+            orders = self.get_changed_orders(last_changed_from=day_from, last_changed_type=last_changed_type)
             orders_by_date[day_from.strftime('%Y-%m-%d')] = orders
-            time.sleep(0.5)
+            time.sleep(0.4)
 
         return orders_by_date

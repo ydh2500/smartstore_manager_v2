@@ -55,6 +55,3 @@ class LastChangeStatus(BaseModel):
 
 class LastChangeStatusList(BaseModel):
     lastChangeStatus_list: list[LastChangeStatus]
-
-    class Config:
-        orm_mode = True

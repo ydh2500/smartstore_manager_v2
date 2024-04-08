@@ -35,17 +35,17 @@ app.include_router(order_router.router)
 def index():
     return "Hello, World!"
 
-if __name__ == '__main__':
-
-    since_from_datetime = datetime.now() - timedelta(days=3)
-
-    try:
-        new_orders = order_manager.get_changed_orders(since_from_datetime)
-        print('New Orders:', new_orders)
-
-        new_orders = order_manager.get_orders_for_days(days=7, last_changed_type=LastChangedType.PAYED)
-        print('Weekly Orders:', new_orders)
-        # order_manager.confirm_orders(new_orders)
-    except Exception as e:
-        print(f'Order Error: {e}')
-        traceback.print_exc()
+# if __name__ == '__main__':
+#
+#     since_from_datetime = datetime.now() - timedelta(days=3)
+#
+#     try:
+#         new_orders = order_manager.get_changed_orders(since_from_datetime)
+#         print('New Orders:', new_orders)
+#
+#         new_orders = order_manager.get_orders_for_days(days=7, last_changed_type=LastChangedType.PAYED)
+#         print('Weekly Orders:', new_orders)
+#         # order_manager.confirm_orders(new_orders)
+#     except Exception as e:
+#         print(f'Order Error: {e}')
+#         traceback.print_exc()

@@ -1,12 +1,13 @@
 import json
 import time
+import traceback
 from datetime import datetime, timedelta
 from http.client import HTTPSConnection
 from urllib.parse import quote_plus
 
 from pydantic import ValidationError
 
-from domain.order.order_schema import LastChangeStatus
+from domain.order.order_schema import LastChangeStatus, LastChangeStatusList
 
 
 class NaverOrderManager:
@@ -41,8 +42,11 @@ class NaverOrderManager:
             print(data.decode("utf-8"))
         """
         order_url = f'/external/v1/pay-order/seller/product-orders/last-changed-statuses'
+        last_change_statuses = LastChangeStatusList(lastChangeStatus_list=[])
+
         last_changed_from = last_changed_from.replace(hour=0, minute=0, second=0, microsecond=0)
         last_changed_to = last_changed_from + timedelta(days=1)
+
         #만일 last_changed_to가 현재 시간보다 미래라면 현재 시간의 1분 전으로 변경
         if last_changed_to > datetime.now():
             last_changed_to = datetime.now() - timedelta(minutes=1)
@@ -54,42 +58,44 @@ class NaverOrderManager:
         # URL 인코딩
         encoded_last_changed_from = quote_plus(last_changed_from) # 최대 24시간 이전의 주문 조회
         encoded_last_changed_to = quote_plus(last_changed_to)
-
         query = f"lastChangedFrom={encoded_last_changed_from}&lastChangedTo={encoded_last_changed_to}"
         if last_changed_type:
             query += f"&lastChangedType={last_changed_type}"
-
         self.conn.request("GET", f"{order_url}?{query}", headers=self.headers)
-
         response = self.conn.getresponse()
         if response.status != 200:
             raise Exception(f'Order Error: {response.status}, {response.read()}')
-
         data = response.read().decode('utf-8')
         json_data = json.loads(data)
-
         if json_data.get('data') is None:
-            return []
-
-        last_change_statuses = []
+            return last_change_statuses
 
         try:
-            last_change_statuses = [LastChangeStatus(**status) for status in
-                                    json_data.get('data')['lastChangeStatuses']]
+            for status in json_data.get('data')['lastChangeStatuses']:
+                try:
+                    last_change_status = LastChangeStatus(**status)
+                    last_change_statuses.lastChangeStatus_list.append(last_change_status)
+                except ValidationError as e:
+                    print(f'error: {e.json()}')
+                    print(f'status: {status}')
         except ValidationError as e:
             print(e.json())
 
         return last_change_statuses
 
-    def get_orders_for_days(self, days, last_changed_type: str):
-        orders_by_date = {}
-        # 오늘 00시 00분 00초부터 days일 전까지의 주문 조회
-        start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=days)
+    def get_orders_for_days(self, since_from: datetime, last_changed_type: str):
+        # LastChangeStatusList 객체 생성
+        all_orders = LastChangeStatusList(lastChangeStatus_list=[])
 
-        for day in range(days+1):
+        # since_from 부터 현재 까지의 주문 조회
+        start_date = since_from.replace(hour=0, minute=0, second=0, microsecond=0)
+        days = (datetime.now() - start_date).days
+
+        for day in range(days + 1):
             day_from = start_date + timedelta(days=day)
             orders = self.get_changed_orders(last_changed_from=day_from, last_changed_type=last_changed_type)
-            orders_by_date[day_from.strftime('%Y-%m-%d')] = orders
+            # 각 날짜별로 얻은 주문을 all_orders에 추가
+            all_orders.lastChangeStatus_list.extend(orders.lastChangeStatus_list)
             time.sleep(0.4)
 
-        return orders_by_date
+        return all_orders

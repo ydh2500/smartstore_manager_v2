@@ -13,6 +13,10 @@ router = APIRouter(
     prefix="/api/order",
 )
 
+@router.get("/all_changed_list", response_model=order_schema.LastChangeStatusList)
+def get_all_changed_list(since_from: datetime, db: Session = Depends(get_db)):
+    all_changed_list = order_manager.get_orders_for_days(since_from, last_changed_type=None)
+    return all_changed_list
 
 @router.get("/pay_waiting_list", response_model=order_schema.LastChangeStatusList)
 def get_pay_waiting_list(since_from: datetime, db: Session = Depends(get_db)):

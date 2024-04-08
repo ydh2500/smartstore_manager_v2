@@ -96,6 +96,6 @@ class NaverOrderManager:
             orders = self.get_changed_orders(last_changed_from=day_from, last_changed_type=last_changed_type)
             # 각 날짜별로 얻은 주문을 all_orders에 추가
             all_orders.lastChangeStatus_list.extend(orders.lastChangeStatus_list)
-            time.sleep(0.4)
+            time.sleep(0.5)
 
         return all_orders

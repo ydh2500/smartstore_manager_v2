@@ -1,3 +1,4 @@
+import os
 import traceback
 from datetime import datetime, timedelta
 import http.client
@@ -11,10 +12,14 @@ from starlette.middleware.cors import CORSMiddleware
 from domain.order.order_schema import LastChangedType
 from naver_api import order_manager
 
+# 8000 포트 종료
+os.system('npx kill-port 8000') # for Windows 가끔 종료안되는것 방지
+
 app = FastAPI()
 
 origins = [
     "http://127.0.0.1:5173",  # Svelte
+    "http://localhost:5173",  # Svelte
 ]
 
 app.add_middleware(

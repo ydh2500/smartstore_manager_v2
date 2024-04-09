@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from domain.order.order_schema import LastChangeStatus, LastChangeStatusList
 
 
+
 class NaverOrderManager:
     """
     NaverOrderManager: 네이버 쇼핑 주문 관리 클래스
@@ -21,14 +22,6 @@ class NaverOrderManager:
         get_new_orders: 특정 시간 이후의 새로운 주문 조회
         confirm_orders: 주문 확인 처리
     """
-
-    def __init__(self, conn: HTTPSConnection, headers: dict):
-        '''
-        네이버 쇼핑 주문 관리 클래스
-        :param access_token: 네이버 쇼핑 API 접근 토큰
-        '''
-        self.conn = conn
-        self.headers = headers
 
     def get_changed_orders(self, last_changed_from: datetime, last_changed_type: str = None):
         """
@@ -61,8 +54,11 @@ class NaverOrderManager:
         query = f"lastChangedFrom={encoded_last_changed_from}&lastChangedTo={encoded_last_changed_to}"
         if last_changed_type:
             query += f"&lastChangedType={last_changed_type}"
-        self.conn.request("GET", f"{order_url}?{query}", headers=self.headers)
-        response = self.conn.getresponse()
+
+        from naver_api import get_connection
+        conn, headers = get_connection()
+        conn.request("GET", f"{order_url}?{query}", headers=headers)
+        response = conn.getresponse()
         if response.status != 200:
             raise Exception(f'Order Error: {response.status}, {response.read()}')
         data = response.read().decode('utf-8')

@@ -1,7 +1,8 @@
 <script>
     import { onMount } from 'svelte';
     import { load } from './+page.js';
-    let date = new Date().toISOString().split('T')[0]; // 오늘의 날짜를 YYYY-MM-DD 형식으로 가져옵니다.
+    let startDate = new Date().toISOString().split('T')[0]; // 시작일을 오늘로 설정합니다.
+    const endDate = new Date().toISOString().split('T')[0]; // 종료일을 오늘로 고정합니다.
     let purchase_decided_list = [];
     let isLoading = false; // 로딩 상태를 나타내는 변수
 
@@ -41,32 +42,67 @@
         return counts;
     }, {});
 
+    // 오늘의 날짜를 선택합니다.
+    function selectToday() {
+        startDate = new Date().toISOString().split('T')[0];
+    }
+
+    // 최근 3일을 선택합니다.
+    function selectThreeDays() {
+        startDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    }
+
+    // 최근 일주일을 선택합니다.
+    function selectWeek() {
+        startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    }
+
+
+    // 데이터를 가져오는 함수
     async function fetchData() {
         isLoading = true; // 로딩 시작
-        const datetime = `${date}T00:00:00`; // 날짜에 시간을 추가하여 ISO 8601 형식으로 만듭니다.
-        const result = await load({ fetch: window.fetch }, datetime);
-        purchase_decided_list = result.purchase_decided_list;
-        isLoading = false; // 로딩 완료
+        try {
+            // 날짜 형식이 맞지 않으면 alert를 띄우고 함수를 종료합니다.
+            if (!startDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                alert('날짜 형식이 맞지 않습니다. YYYY-MM-DD 형식으로 입력해 주세요.');
+                return;
+            }
+            const datetime = `${startDate}T00:00:00`; // 날짜에 시간을 추가하여 ISO 8601 형식으로 만듭니다.
+            const result = await load({ fetch: window.fetch }, datetime);
+            purchase_decided_list = result.purchase_decided_list;
+            isLoading = false; // 로딩 완료
 
-        // 카운트를 초기화합니다.
-        product_order_status_counts = Object.keys(ProductOrderStatuses).reduce((counts, status) => {
-            counts[status] = 0;
-            return counts;
-        }, {});
+            // 카운트를 초기화합니다.
+            product_order_status_counts = Object.keys(ProductOrderStatuses).reduce((counts, status) => {
+                counts[status] = 0;
+                return counts;
+            }, {});
 
-        // 각 상태의 카운트를 계산합니다.
-        product_order_status_counts = purchase_decided_list.reduce((counts, item) => {
-            counts[item.productOrderStatus]++;
-            return counts;
-        }, product_order_status_counts);
+            // 각 상태의 카운트를 계산합니다.
+            product_order_status_counts = purchase_decided_list.reduce((counts, item) => {
+                counts[item.productOrderStatus]++;
+                return counts;
+            }, product_order_status_counts);
+        } catch (error) {
+            console.error(error);
+            alert('데이터를 불러오는 중 오류가 발생했습니다. 입력 값을 확인해 주세요.');
+        } finally {
+            isLoading = false; // 로딩 완료
+        }   
     }
-    
+
     // 컴포넌트가 마운트될 때 fetchData 함수를 호출합니다.
     onMount(fetchData);
 </script>
 
-<input type="date" bind:value={date} />
-<button on:click={fetchData}>Fetch Data</button>
+<button on:click={selectToday}>오늘</button>
+<button on:click={selectThreeDays}>최근 3일</button>
+<button on:click={selectWeek}>일주일</button>
+<p>
+    시작일: <input type="date" bind:value={startDate} max={endDate}/>
+    ~ 종료일: <input type="date" value={endDate} readonly />
+    <button on:click={fetchData}>조회</button>
+</p>
 
 <!-- 로딩 아이콘을 조건적으로 표시 -->
 {#if isLoading}

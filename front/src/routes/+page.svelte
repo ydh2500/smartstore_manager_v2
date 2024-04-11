@@ -4,6 +4,7 @@
     let startDate = new Date().toISOString().split('T')[0]; // 시작일을 오늘로 설정합니다.
     const endDate = new Date().toISOString().split('T')[0]; // 종료일을 오늘로 고정합니다.
     let purchase_decided_list = [];
+    let orderDetails = []; // 주문 상세 정보를 저장할 배열
     let isLoading = false; // 로딩 상태를 나타내는 변수
 
     // LastChangedTypes의 영문 키와 한글명을 매핑하는 객체
@@ -70,7 +71,8 @@
             const datetime = `${startDate}T00:00:00`; // 날짜에 시간을 추가하여 ISO 8601 형식으로 만듭니다.
             const result = await load({ fetch: window.fetch }, datetime);
             purchase_decided_list = result.purchase_decided_list;
-            isLoading = false; // 로딩 완료
+            orderDetails = result.order_details;
+            console.log('orderDetails:', orderDetails);
 
             // 카운트를 초기화합니다.
             product_order_status_counts = Object.keys(ProductOrderStatuses).reduce((counts, status) => {
@@ -117,12 +119,32 @@
     {/each}
 </ul>
 
-<!-- purchase_decided_list를 사용하여 데이터를 표시 -->
+<!-- orderDetails를 사용하여 데이터를 테이블로 표시 -->
+<table>
+    <thead>
+        <tr>
+            <th>Product Order ID</th>
+            <th>Product Order Status</th>
+            <!-- 필요한 다른 헤더를 여기에 추가 -->
+        </tr>
+    </thead>
+    <tbody>
+        {#each orderDetails as item (item.productOrder.productOrderId)}
+            <tr>
+                <td>{item.productOrder.productOrderId}</td>
+                <td>{item.productOrder.productOrderStatus}</td>
+                <!-- 필요한 다른 데이터를 여기에 추가 -->
+            </tr>
+        {/each}
+    </tbody>
+</table>
+
+<!-- purchase_decided_list를 사용하여 데이터를 표시
 <ul>
     {#each purchase_decided_list as item (item.productOrderId)}
         <li>{item.productOrderId}: {item.productOrderStatus}</li>
     {/each}
-</ul>
+</ul> -->
 
 <style>
     /* Add any necessary styles here */

@@ -437,3 +437,42 @@ class OrderDetails(BaseModel):
     timestamp: datetime.datetime
     traceId: str
     data: list[dict]
+
+
+
+class OrderConfirmResponse(BaseModel):
+    """
+    {
+      "timestamp": "2023-01-16T17:14:51.794+09:00",
+      "traceId": "string",
+      "data": {
+        "successProductOrderInfos": [
+          {
+            "productOrderId": "string",
+            "isReceiverAddressChanged": true
+          }
+        ],
+        "failProductOrderInfos": [
+          {
+            "productOrderId": "string",
+            "code": "string",
+            "message": "string"
+          }
+        ]
+      }
+    }
+    """
+    timestamp: datetime.datetime
+    traceId: str
+    data: dict
+
+
+class OrderConfirmRequest(BaseModel):
+    productOrderIds: list[str]
+
+    @validator('productOrderIds')
+    def check_product_order_ids(cls, v):
+        if not v:
+            raise ValueError('productOrderIds is empty')
+        return v
+

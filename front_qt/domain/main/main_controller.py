@@ -12,6 +12,7 @@ class MainController(QObject):
         self.setup_value()
         self.setup_tab_pages(self.ui.tabWidget_main)
 
+
     def setup_ui(self):
         from front_qt.view.main_window import Ui_MainWindow
 

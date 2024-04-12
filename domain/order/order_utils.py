@@ -110,3 +110,33 @@ def get_order_details(product_order_ids: list):
     data = response.read().decode('utf-8')
     json_data = json.loads(data)
     return json_data
+
+
+def confirm_orders(product_order_ids: list):
+    """
+    example code:
+        import http.client
+        conn = http.client.HTTPSConnection("api.commerce.naver.com")
+        payload = "{\"productOrderIds\":[\"string\"]}"
+        headers = {
+            'Authorization': "Bearer REPLACE_BEARER_TOKEN",
+            'content-type': "application/json"
+            }
+        conn.request("POST", "/external/v1/pay-order/seller/product-orders/confirm", payload, headers)
+        res = conn.getresponse()
+        data = res.read()
+        print(data.decode("utf-8"))
+    """
+    order_url = '/external/v1/pay-order/seller/product-orders/confirm'
+    payload = {"productOrderIds": product_order_ids}
+
+    from naver_api import get_connection
+    conn, headers = get_connection()
+    headers['content-type'] = 'application/json'
+    conn.request("POST", order_url, json.dumps(payload), headers=headers)
+    response = conn.getresponse()
+    if response.status != 200:
+        raise Exception(f'Order Error: {response.status}, {response.read()}')
+    data = response.read().decode('utf-8')
+    json_data = json.loads(data)
+    return json_data

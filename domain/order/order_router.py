@@ -8,7 +8,7 @@ from starlette import status
 from database import get_db
 from domain.order import order_schema
 from domain.order.order_schema import LastChangedType
-from domain.order.order_utils import get_orders_for_days, get_order_details
+from domain.order.order_utils import get_orders_for_days, get_order_details, confirm_orders
 
 router = APIRouter(
     prefix="/api/order",
@@ -43,3 +43,10 @@ def get_purchase_decided_list(since_from: datetime, db: Session = Depends(get_db
 def get_order_detail_list(product_order_ids: List[str] = Query([]), db: Session = Depends(get_db)):
     order_details = get_order_details(product_order_ids)
     return order_details
+
+
+# 발주 확인처리
+@router.post("/order_confirm")
+def order_confirm(product_order_ids: List[str] = Query([]), db: Session = Depends(get_db)):
+    confirm_result = confirm_orders(product_order_ids)
+    return confirm_result
